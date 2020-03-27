@@ -9,6 +9,7 @@ window.onload = function () {
     var loading = document.getElementById("loading");
     loading.classList.remove("hidden");
     map.setView([35.5, 137], 10);
+    L.Icon.Default.imagePath = "dist/images";
     L.tileLayer(
         "https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw", {
         maxZoom: 18,
@@ -31,9 +32,12 @@ window.onload = function () {
             JSON_Merged = Object.create(concatJSON(JSON_Origin));
             geoJsonLayer = L.geoJSON(JSON_Merged, {
                 style: function (feature) {
-                    return feature.properties && feature.properties.style;
+                    return feature.properties && feature.properties.style
                 },
-                onEachFeature: onEachFeature
+                onEachFeature: onEachFeature,
+                pointToLayer: function(feature, latlng) {
+                    return L.marker(latlng, {icon: L.spriteIcon(feature.properties.color[0])});
+                }
             }).addTo(map);
             //refelshInfo();
             loading.classList.add("hidden");
@@ -69,6 +73,9 @@ function execFilltering(e) {
         style: function (feature) {
             return feature.properties && feature.properties.style;
         },
+        pointToLayer: function(feature, latlng) {
+            return L.marker(latlng, {icon: L.spriteIcon(feature.properties.color[0])});
+        },
         onEachFeature: onEachFeature
     }).addTo(map);
     //refelshInfo();
@@ -80,8 +87,8 @@ function onEachFeature(feature, layer) {
         feature.properties.name +
         "</b><br>" +
         feature.properties.addr +
-        "<br><tel>" +
-        feature.properties.tel1 + "</tel> " + feature.properties.tel2 +
+        "<br><a href= tel:" +
+        feature.properties.tel1 +">"+ feature.properties.tel1 + "</a> " + feature.properties.tel2 +
         "<br>" +
         feature.properties.ontime +
         "<table>";
@@ -89,7 +96,9 @@ function onEachFeature(feature, layer) {
     for (i = 0; i < feature.properties.consultation.length; i++) {
         popupContent +=
             "<tr><td>" +
-            "・" + feature.properties.consultation[i] +
+            feature.properties.classification[i] +
+            "</td><td>" +
+            feature.properties.consultation[i] +
             "</td></tr>";
     }
     popupContent += "</table>";
@@ -145,7 +154,9 @@ function fillteringJSON(JSON_arg, value) {
             " " +
             JSON_ref[i].properties.LocName +
             " " +
-            JSON_ref[i].properties.consultation;
+            JSON_ref[i].properties.consultation +
+            " " +
+            JSON_ref[i].properties.classification;
 
         if (target.match(value)) {
             JSON_res.features.push(JSON_ref[i]);
@@ -171,6 +182,12 @@ function concatJSON(JSON_arg) {
             JSON_res.features[cnt - 1].properties.consultation.push(
                 JSON_ref[i].properties.consultation
             );
+            JSON_res.features[cnt - 1].properties.classification.push(
+                JSON_ref[i].properties.classification
+            );
+            JSON_res.features[cnt - 1].properties.color.push(
+                JSON_ref[i].properties.color
+            );
         } else {
             var obj = {};
             obj.type = "Feature";
@@ -190,6 +207,8 @@ function concatJSON(JSON_arg) {
             );
 
             obj.properties.consultation = [JSON_ref[i].properties.consultation];
+            obj.properties.classification = [JSON_ref[i].properties.classification];
+            obj.properties.color = [JSON_ref[i].properties.color];
             JSON_res.features.push(obj);
             cnt++;
         }
